@@ -43,7 +43,8 @@ from qgis.gui import QgsMapToolEmitPoint
 from qgis.utils import iface
 
 from .ClickManagement import *    #to manage canvas
-import requests
+
+from .ProjectGDA import *
 
 
 from .credentials import * # file needs to contain API key.
@@ -209,15 +210,21 @@ class NearestBuildingsToPoint:
 
     #above there is limited changes to the origional defualt builder.      
 
-    def nearest_building(self, point): #turns point to lat and log, to pass to get_building_ids
+    def nearest_building(self, point): #turns point to lat and log, to pass to get_building_ids + manages projections
         #this gets the point and distance form the click event. 
-        print(" in nearest_building")
-        print(point)
-        print(point[0])
-        print(point[1])
+        #print(" in nearest_building")
+        #print(point)
+        #print(point[0])
+        #print(point[1])
 
-        long_ord = (point[0])
-        lat_ord = (point[1])
+       
+        #REWORK.... 21092018 GDA transform
+        pt = pointGDA94(point, self.iface.mapCanvas().mapSettings().destinationCrs()) 
+        print(pt) 
+        long_ord = (pt[0])
+        lat_ord = (pt[1])      
+
+
 
 
         var_search_radius = self.dlg.lineEdit_3.text()

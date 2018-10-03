@@ -1,1 +1,1 @@
-API_KEY = 'Insert Beta Key Here'
+API_KEY = 'Insert Key Here'
