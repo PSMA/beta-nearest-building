@@ -1,10 +1,10 @@
 Plugin Builder Results
 
 Your plugin NearestBuildingsToPoint was created in:
-    C:\Users\brucej\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\nearestbuildingstopoint
+    C:\Users\user\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\nearestbuildingstopoint
 
 Your QGIS plugin directory is located at:
-    C:/Users/brucej/AppData/Roaming/QGIS/QGIS3/profiles/default/python/plugins
+    C:/Users/user/AppData/Roaming/QGIS/QGIS3/profiles/default/python/plugins
 
 What's Next:
 
