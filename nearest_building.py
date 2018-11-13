@@ -238,7 +238,9 @@ class NearestBuildingsToPoint:
     def get_building_ids(self, latx, longy, radiusdist): #main communciation with APS
         print("in get_building_ids")
 
-        bl_url = 'https://api.psma.com.au/beta/v1/buildings/nearest/?latLong=' + str(latx) + '%2C' + str(longy) + '&radius=' + str(radiusdist) + '&page=1&perPage=100'
+        #14th Nov 2018. beta legacy bl_url = 'https://api.psma.com.au/beta/v1/buildings/nearest/?latLong=' + str(latx) + '%2C' + str(longy) + '&radius=' + str(radiusdist) + '&page=1&perPage=100'
+        bl_url = 'https://api.psma.com.au/beta/v1/buildings/?latLong=' + str(latx) + '%2C' + str(
+            longy) + '&radius=' + str(radiusdist) + '&page=1&perPage=100'
         
         print(bl_url)
         
@@ -264,7 +266,8 @@ class NearestBuildingsToPoint:
             print (building_id)
 
             # ---------------------------------------------------
-            bl_urlBuildingLinks = 'https://api.psma.com.au/beta/v1/buildings/' + building_id + '/' + '?include=footprint2d' #more attributes can be added after include
+            #bl_urlBuildingLinks = 'https://api.psma.com.au/beta/v1/buildings/' + building_id + '/' + '?include=footprint2d' #more attributes can be added after include
+            bl_urlBuildingLinks = 'https://api.psma.com.au/beta/v1/buildings/' + building_id + '/' + '?include=footprint2d'  # more attributes can be added after include
             
             print (bl_urlBuildingLinks)
             response3 = requests.get(bl_urlBuildingLinks, headers=headers, verify=False) # for each building get 2d footprint for plotting.
