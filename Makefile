@@ -48,7 +48,7 @@ PY_FILES = \
 
 UI_FILES = nearest_building_dialog_base.ui
 
-EXTRAS = metadata.txt icon.png
+EXTRAS = metadata.txt icon.png geoscape.png
 
 EXTRA_DIRS =
 

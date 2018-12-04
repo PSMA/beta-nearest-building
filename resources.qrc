@@ -2,4 +2,10 @@
     <qresource prefix="/plugins/nearest_building" >
         <file>icon.png</file>
     </qresource>
+    <qresource prefix="/plugins/nearest_building" >
+        <file>geoscape_ico.png</file>
+    </qresource>
+    <qresource prefix="/plugins/nearest_building" >
+        <file>geoscape.png</file>
+    </qresource>
 </RCC>
