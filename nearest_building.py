@@ -24,12 +24,14 @@
 from PyQt5.QtCore import * # QSettings, QTranslator, qVersion, QCoreApplication
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction
+from PyQt5.QtWidgets import QMessageBox
 
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
 from .nearest_building_dialog import NearestBuildingsToPointDialog
 import os.path
+from pathlib import Path
 
 #psma - - -
 import requests
@@ -46,16 +48,23 @@ from .ClickManagement import *    #to manage canvas
 
 from .ProjectGDA import *
 
+def resolve_file_path(name, basepath=None):
+    # Handler for resolving to the plugin directory
+    # Pinched from https://gis.stackexchange.com/a/130031
+    if not basepath:
+      basepath = os.path.dirname(os.path.realpath(__file__))
+    return os.path.join(basepath, name)
 
-from .credentials import * # file needs to contain API key.
-
-# - - -
-
-apikey = API_KEY 
-print(API_KEY)
+def load_api_key_config():
+    # Load the API Key from file, if doesn't exist return an empty string
+    creds_file = Path(resolve_file_path("credentials.json"))
+    if creds_file.is_file():
+        with open(creds_file) as f:
+            data = json.load(f)
+            return data["api_key"]
+    return ''
 
 class NearestBuildingsToPoint:
-    """QGIS Plugin Implementation."""
 
     def __init__(self, iface):
         """Constructor.
@@ -93,36 +102,29 @@ class NearestBuildingsToPoint:
         self.toolbar = self.iface.addToolBar(u'NearestBuildingsToPoint')
         self.toolbar.setObjectName(u'NearestBuildingsToPoint')
 
+        # Load the API Key from the config file and set it within the form
+        self.api_key = load_api_key_config()
+        self.dlg.input_apikey.setText(self.api_key)
+        # Setup the click handler to save the updated API key
+        self.dlg.btn_api_set.clicked.connect(self.set_api_key)
+
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
 
-        #12th sept 2018. get input from user---------------------------------------
-
-        self.dlg.pushButton_2.clicked.connect(self.buildingpoint_click) #from map canvas
-        self.dlg.pushButton.clicked.connect(self.buildingpoint_keyboard) #from keyboard lat long                         
-
-
+        self.dlg.btn_buildings_by_latlon.clicked.connect(self.buildingpoint_keyboard)
+        self.dlg.btn_get_buildings_by_map.clicked.connect(self.buildingpoint_click)
 
         # store layer id
         self.layerid = ''
         self.layer = None
 
-
-        #------------------------end.
-
-        """Get the translation for a string using Qt translation API.
-
-        We implement this ourselves since we do not inherit QObject.
-
-        :param message: String for translation.
-        :type message: str, QString
-
-        :returns: Translated version of message.
-        :rtype: QString
-        """
-        # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate('NearestBuildingsToPoint', message)
 
+    def set_api_key(self):
+        new_key = self.dlg.input_apikey.text()
+        creds_file = Path(resolve_file_path("credentials.json"))
+        with open(creds_file, 'w') as f:
+            json.dump({'api_key': new_key}, f)
 
     def add_action(
         self,
@@ -160,127 +162,80 @@ class NearestBuildingsToPoint:
         return action
 
     def initGui(self):
-        """Create the menu entries and toolbar icons inside the QGIS GUI."""
-
-        icon_path = ':/plugins/nearest_building/icon.png'
+        icon_path = ':/plugins/nearest_building/geoscape_ico.png'
         self.add_action(
             icon_path,
             text=self.tr(u'Nearest Buildings'),
             callback=self.run,
             parent=self.iface.mainWindow())
 
-
     def unload(self):
-        """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginMenu(
                 self.tr(u'&Nearest Building'),
                 action)
             self.iface.removeToolBarIcon(action)
-        # remove the toolbar
         del self.toolbar
 
-
     def run(self):
-        """Run method that performs all the real work"""
-        # show the dialog
         self.dlg.show()
-        # Run the dialog event loop
         result = self.dlg.exec_()
-        # See if OK was pressed
         if result:
-            # Do something useful here - delete the line containing pass and
-            # substitute with your code.
             pass
 
-    def buildingpoint_click(self):  #goes to GetClick and goes to nearest_building def.
+    def buildingpoint_click(self):
         print("in neareast_buildin.py in NearestBuildingsToPoint Class in def buildingpoint_click")
-        ct = GetClick(self.iface,  self.nearest_building); #nearest_building 
+        ct = GetClick(self.iface, self.nearest_building);
         self.previous_map_tool = self.iface.mapCanvas().mapTool()
         self.iface.mapCanvas().setMapTool(ct)
 
-    def buildingpoint_keyboard(self):  #goes directly to def get_building_ids
-        #manual lat long input from keyboard. 
+    def buildingpoint_keyboard(self):  
         var_lat = self.dlg.lineEdit.text()
         var_long = self.dlg.lineEdit_2.text()
-        var_search_radius = self.dlg.lineEdit_3.text()
-        self.get_building_ids( var_lat , var_long, var_search_radius)
+        self.get_building_ids(var_lat, var_long, self.dlg.input_radius.text())
 
-
-
-    #above there is limited changes to the origional defualt builder.      
-
-    def nearest_building(self, point): #turns point to lat and log, to pass to get_building_ids + manages projections
-        #this gets the point and distance form the click event. 
-        #print(" in nearest_building")
-        #print(point)
-        #print(point[0])
-        #print(point[1])
-
-       
-        #REWORK.... 21092018 GDA transform
+    def nearest_building(self, point):
         pt = pointGDA94(point, self.iface.mapCanvas().mapSettings().destinationCrs()) 
-        print(pt) 
         long_ord = (pt[0])
         lat_ord = (pt[1])      
+        self.get_building_ids(lat_ord, long_ord, self.dlg.input_radius.text())
 
+    def get_building_ids(self, latx, longy, radiusdist):
 
-
-
-        var_search_radius = self.dlg.lineEdit_3.text()
-        print(var_search_radius)
-
-        self.get_building_ids( lat_ord, long_ord, var_search_radius)
-
-
-
-
-    def get_building_ids(self, latx, longy, radiusdist): #main communciation with APS
-        print("in get_building_ids")
-
-        #14th Nov 2018. beta legacy bl_url = 'https://api.psma.com.au/beta/v1/buildings/nearest/?latLong=' + str(latx) + '%2C' + str(longy) + '&radius=' + str(radiusdist) + '&page=1&perPage=100'
         bl_url = 'https://api.psma.com.au/beta/v1/buildings/?latLong=' + str(latx) + '%2C' + str(
-            longy) + '&radius=' + str(radiusdist) + '&page=1&perPage=100'
+            longy) + '&radius=' + str(radiusdist) + '&page=1&perPage=100&include=footprint2d'
         
-        print(bl_url)
+        print('Getting buidings: ' + bl_url)
         
         headers = {
-            "Authorization": apikey,
+            "Authorization": self.api_key,
             "Accept": "application/json"
-
         }
-        response2 = requests.get(bl_url, headers=headers, verify=False) # get list of closest building ids
-        print ("response code for the set of building is: ")
-        print (response2)
-        data2 = response2.json()
-        #print(data2)
-        data3 = json.dumps(data2)
-        #print("data3")
-        #print(data3)
 
-        
+        response = requests.get(bl_url, headers=headers, verify=False)
+        response_data = response.json()
 
-        for item in data2['data']: # get details for each building and plot them.
-            print(item)
-            building_id = item['buildingId']
-            print (building_id)
+        fc = {
+            "type": 'FeatureCollection',
+            "features": []
+        }
 
-            # ---------------------------------------------------
-            #bl_urlBuildingLinks = 'https://api.psma.com.au/beta/v1/buildings/' + building_id + '/' + '?include=footprint2d' #more attributes can be added after include
-            bl_urlBuildingLinks = 'https://api.psma.com.au/beta/v1/buildings/' + building_id + '/' + '?include=footprint2d'  # more attributes can be added after include
-            
-            print (bl_urlBuildingLinks)
-            response3 = requests.get(bl_urlBuildingLinks, headers=headers, verify=False) # for each building get 2d footprint for plotting.
-            print("response code for individual building call is: ")
-            print(response3)
-            data4 = response3.json()
-            data5 = json.dumps(data4)
-            #print("data5")
-            #print(data5)
+        if (response_data['message']):
+            QMessageBox.about(None, "Error retrieving data", "Error retrieving data " +\
+            str(response_data['message'])) 
+            return None
 
+        if len(response_data['data']) > 0:
+            for item in response_data['data']:
+                building_id = item['buildingId']
+                print(item)
+                fc["features"].append({
+                    "geometry": item['footprint2d'],
+                    "properties": {
+                        "BuildingId": building_id
+                    }
+                })
 
-            #adds each json retuned as layer for this plug in. 
-            vlayer = QgsVectorLayer(data5, "buildingId" + "_" + building_id, "ogr")
-            print(vlayer)###
+            vlayer = QgsVectorLayer(json.dumps(fc), "Geoscape", "ogr")
             QgsProject.instance().addMapLayer(vlayer)
 
